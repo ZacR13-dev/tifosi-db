@@ -81,4 +81,5 @@ base `tifosi` :
 
 Les 3 scripts ont été **exécutés sans erreur** sur MariaDB 10.11, et les **10
 requêtes du sujet renvoient toutes le résultat attendu** (résultats détaillés en
-commentaire dans `sql/03_requetes.sql`). L'intégrité des clés a été contrôlée.
+commentaire dans `sql/03_requetes.sql`, et regroupés dans
+**[docs/resultats.md](docs/resultats.md)**). L'intégrité des clés a été contrôlée.
