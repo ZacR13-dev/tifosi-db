@@ -1,176 +1,165 @@
 -- =============================================================================
 --  Projet  : Base de données "Tifosi"
 --  Fichier : 03_requetes.sql
---  Rôle    : Requêtes de test, classées par ordre de complexité croissante.
+--  Rôle    : Requêtes de vérification demandées par le sujet (10 requêtes).
 --  Pré-requis : avoir exécuté 01_schema.sql puis 02_data.sql.
 -- =============================================================================
 --
---  Chaque requête est précédée d'un commentaire indiquant son objectif et la
---  notion SQL illustrée. Exécuter les requêtes une à une pour observer le
---  résultat de chacune.
---
+--  Pour chaque requête sont indiqués :
+--    - le numéro et le but,
+--    - le code SQL,
+--    - le résultat attendu,
+--    - le résultat obtenu,
+--    - le commentaire des éventuels écarts.
 -- -----------------------------------------------------------------------------
 
 USE tifosi;
 
 
--- =====================  NIVEAU 1 : SÉLECTIONS SIMPLES  =======================
-
--- R1. Toutes les focaccias de la carte, de la moins chère à la plus chère.
---     Notions : SELECT, ORDER BY.
-SELECT nom_focaccia, prix
+-- ----------------------------------------------------------------------------
+-- Requête 1 : Afficher la liste des noms des focaccias par ordre alphabétique
+--             croissant.
+-- ----------------------------------------------------------------------------
+SELECT nom
 FROM   focaccia
-ORDER  BY prix ASC;
-
--- R2. Les boissons « zéro / light » (recherche textuelle insensible à la casse).
---     Notions : WHERE, LIKE.
-SELECT nom_boisson
-FROM   boisson
-WHERE  nom_boisson LIKE '%zéro%'
-    OR nom_boisson LIKE '%max%';
-
--- R3. Les focaccias dont le prix est compris entre 9 et 11 euros.
---     Notions : WHERE, BETWEEN.
-SELECT nom_focaccia, prix
-FROM   focaccia
-WHERE  prix BETWEEN 9 AND 11
-ORDER  BY prix;
+ORDER  BY nom ASC;
+-- Résultat attendu : les 8 focaccias, de A à T.
+--   Américaine, Emmentalaccia, Gorgonzollaccia, Hawaienne,
+--   Mozaccia, Paysanne, Raclaccia, Tradizione
+-- Résultat obtenu  : identique (8 lignes).
+-- Écart            : aucun.
 
 
--- =====================  NIVEAU 2 : JOINTURES  ================================
+-- ----------------------------------------------------------------------------
+-- Requête 2 : Afficher le nombre total d'ingrédients.
+-- ----------------------------------------------------------------------------
+SELECT COUNT(*) AS nb_ingredients
+FROM   ingredient;
+-- Résultat attendu : 25
+-- Résultat obtenu  : 25
+-- Écart            : aucun.
 
--- R4. Chaque boisson avec le nom de sa marque.
---     Notions : INNER JOIN (relation 1..N marque -> boisson).
-SELECT   b.nom_boisson,
-         m.nom_marque
+
+-- ----------------------------------------------------------------------------
+-- Requête 3 : Afficher le prix moyen des focaccias.
+-- ----------------------------------------------------------------------------
+SELECT ROUND(AVG(prix), 2) AS prix_moyen
+FROM   focaccia;
+-- Résultat attendu : 10.38  (83.00 / 8 = 10.375, arrondi à 10.38)
+-- Résultat obtenu  : 10.38
+-- Écart            : aucun. L'arrondi à 2 décimales est explicite via ROUND().
+
+
+-- ----------------------------------------------------------------------------
+-- Requête 4 : Afficher la liste des boissons avec leur marque, triée par nom
+--             de boisson.
+-- ----------------------------------------------------------------------------
+SELECT   b.nom AS boisson,
+         m.nom AS marque
 FROM     boisson b
 JOIN     marque  m ON m.id_marque = b.id_marque
-ORDER BY m.nom_marque, b.nom_boisson;
+ORDER BY b.nom ASC;
+-- Résultat attendu : 12 boissons avec leur marque, triées par nom de boisson :
+--   Capri-sun/Coca-cola, Coca-cola original/Coca-cola, Coca-cola zéro/Coca-cola,
+--   Eau de source/Cristalline, Fanta citron/Coca-cola, Fanta orange/Coca-cola,
+--   Lipton Peach/Pepsico, Lipton zéro citron/Pepsico,
+--   Monster energy ultra blue/Monster, Monster energy ultra gold/Monster,
+--   Pepsi/Pepsico, Pepsi Max Zéro/Pepsico
+-- Résultat obtenu  : identique (12 lignes).
+-- Écart            : aucun.
 
--- R5. Composition détaillée de la focaccia « Paysanne » (ingrédients + grammage).
---     Notions : double jointure via la table d'association, filtre WHERE.
-SELECT   f.nom_focaccia,
-         i.nom_ingredient,
-         c.quantite_g
-FROM     composition c
+
+-- ----------------------------------------------------------------------------
+-- Requête 5 : Afficher la liste des ingrédients pour une Raclaccia.
+-- ----------------------------------------------------------------------------
+SELECT   i.nom AS ingredient
+FROM     comprend   c
 JOIN     focaccia   f ON f.id_focaccia   = c.id_focaccia
 JOIN     ingredient i ON i.id_ingredient = c.id_ingredient
-WHERE    f.nom_focaccia = 'Paysanne'
-ORDER BY c.quantite_g DESC;
+WHERE    f.nom = 'Raclaccia';
+-- Résultat attendu : 7 ingrédients :
+--   Base Tomate, Raclette, Cresson, Ail, Champignon, Parmesan, Poivre
+-- Résultat obtenu  : identique (7 lignes).
+-- Écart            : aucun.
 
--- R6. Toutes les focaccias contenant de la Mozarella.
---     Notions : jointure N..N + filtre sur l'ingrédient.
-SELECT   f.nom_focaccia, f.prix
+
+-- ----------------------------------------------------------------------------
+-- Requête 6 : Afficher le nom et le nombre d'ingrédients pour chaque focaccia.
+-- ----------------------------------------------------------------------------
+SELECT   f.nom,
+         COUNT(c.id_ingredient) AS nb_ingredients
+FROM     focaccia f
+LEFT JOIN comprend c ON c.id_focaccia = f.id_focaccia  -- LEFT JOIN : inclut une éventuelle focaccia sans ingrédient
+GROUP BY f.id_focaccia, f.nom
+ORDER BY nb_ingredients DESC, f.nom;
+-- Résultat attendu : 8 focaccias avec leur nombre d'ingrédients :
+--   Paysanne 12, Mozaccia 10, Hawaienne 9, Tradizione 9,
+--   Américaine 8, Gorgonzollaccia 8, Emmentalaccia 7, Raclaccia 7
+-- Résultat obtenu  : identique (8 lignes).
+-- Écart            : aucun.
+
+
+-- ----------------------------------------------------------------------------
+-- Requête 7 : Afficher le nom de la focaccia qui a le plus d'ingrédients.
+-- ----------------------------------------------------------------------------
+SELECT   f.nom,
+         COUNT(c.id_ingredient) AS nb_ingredients
+FROM     focaccia f
+JOIN     comprend c ON c.id_focaccia = f.id_focaccia
+GROUP BY f.id_focaccia, f.nom
+ORDER BY nb_ingredients DESC
+LIMIT 1;
+-- Résultat attendu : Paysanne (12 ingrédients)
+-- Résultat obtenu  : Paysanne (12)
+-- Écart            : aucun. NB : en cas d'ex æquo, LIMIT 1 n'en renvoie qu'une ;
+--                    ici Paysanne est seule en tête, donc pas d'ambiguïté.
+
+
+-- ----------------------------------------------------------------------------
+-- Requête 8 : Afficher la liste des focaccias qui contiennent de l'ail.
+-- ----------------------------------------------------------------------------
+SELECT   f.nom
 FROM     focaccia   f
-JOIN     composition c ON c.id_focaccia   = f.id_focaccia
-JOIN     ingredient  i ON i.id_ingredient = c.id_ingredient
-WHERE    i.nom_ingredient = 'Mozarella'
-ORDER BY f.nom_focaccia;
+JOIN     comprend   c ON c.id_focaccia   = f.id_focaccia
+JOIN     ingredient i ON i.id_ingredient = c.id_ingredient
+WHERE    i.nom = 'Ail'
+ORDER BY f.nom;
+-- Résultat attendu : 4 focaccias :
+--   Gorgonzollaccia, Mozaccia, Paysanne, Raclaccia
+-- Résultat obtenu  : identique (4 lignes).
+-- Écart            : aucun.
 
 
--- =====================  NIVEAU 3 : AGRÉGATS  ================================
-
--- R7. Nombre de boissons par marque.
---     Notions : GROUP BY, COUNT.
-SELECT   m.nom_marque,
-         COUNT(b.id_boisson) AS nb_boissons
-FROM     marque  m
-LEFT JOIN boisson b ON b.id_marque = m.id_marque  -- LEFT JOIN : inclut les marques sans boisson
-GROUP BY m.id_marque, m.nom_marque
-ORDER BY nb_boissons DESC;
-
--- R8. Prix moyen, minimum et maximum des focaccias.
---     Notions : fonctions d'agrégat AVG / MIN / MAX, arrondi.
-SELECT   ROUND(AVG(prix), 2) AS prix_moyen,
-         MIN(prix)           AS prix_min,
-         MAX(prix)           AS prix_max
-FROM     focaccia;
-
--- R9. Nombre d'ingrédients et poids total (en grammes) de chaque focaccia.
---     Notions : GROUP BY, COUNT, SUM.
-SELECT   f.nom_focaccia,
-         COUNT(c.id_ingredient) AS nb_ingredients,
-         SUM(c.quantite_g)      AS poids_total_g
-FROM     focaccia    f
-JOIN     composition c ON c.id_focaccia = f.id_focaccia
-GROUP BY f.id_focaccia, f.nom_focaccia
-ORDER BY poids_total_g DESC;
-
--- R10. Les ingrédients les plus utilisés (présents dans au moins 4 focaccias).
---      Notions : GROUP BY, COUNT, HAVING (filtre sur un agrégat).
-SELECT   i.nom_ingredient,
-         COUNT(c.id_focaccia) AS nb_focaccias
-FROM     ingredient  i
-JOIN     composition c ON c.id_ingredient = i.id_ingredient
-GROUP BY i.id_ingredient, i.nom_ingredient
-HAVING   COUNT(c.id_focaccia) >= 4
-ORDER BY nb_focaccias DESC;
-
-
--- =====================  NIVEAU 4 : SOUS-REQUÊTES & + COMPLEXE  ===============
-
--- R11. La (ou les) focaccia(s) la(les) plus chère(s) de la carte.
---      Notions : sous-requête dans le WHERE.
-SELECT nom_focaccia, prix
-FROM   focaccia
-WHERE  prix = (SELECT MAX(prix) FROM focaccia);
-
--- R12. Les ingrédients du catalogue qui ne sont utilisés dans AUCUNE focaccia.
---      Notions : sous-requête corrélée avec NOT EXISTS (anti-jointure).
-SELECT   i.nom_ingredient
+-- ----------------------------------------------------------------------------
+-- Requête 9 : Afficher la liste des ingrédients inutilisés
+--             (présents au catalogue mais dans aucune focaccia).
+-- ----------------------------------------------------------------------------
+SELECT   i.nom
 FROM     ingredient i
 WHERE    NOT EXISTS (
              SELECT 1
-             FROM   composition c
+             FROM   comprend c
              WHERE  c.id_ingredient = i.id_ingredient
          )
-ORDER BY i.nom_ingredient;
+ORDER BY i.nom;
+-- Résultat attendu : 2 ingrédients : Salami, Tomate cerise
+-- Résultat obtenu  : identique (2 lignes).
+-- Écart            : aucun.
 
--- R13. Les focaccias « végétariennes » (ne contenant ni viande ni charcuterie).
---      Notions : anti-jointure NOT EXISTS avec liste d'exclusion.
-SELECT   f.nom_focaccia
+
+-- ----------------------------------------------------------------------------
+-- Requête 10 : Afficher la liste des focaccias qui n'ont pas de champignons.
+-- ----------------------------------------------------------------------------
+SELECT   f.nom
 FROM     focaccia f
 WHERE    NOT EXISTS (
              SELECT 1
-             FROM   composition c
-             JOIN   ingredient  i ON i.id_ingredient = c.id_ingredient
+             FROM   comprend   c
+             JOIN   ingredient i ON i.id_ingredient = c.id_ingredient
              WHERE  c.id_focaccia = f.id_focaccia
-               AND  i.nom_ingredient IN ('Bacon', 'Salami', 'Jambon cuit', 'Jambon fumé')
+               AND  i.nom = 'Champignon'
          )
-ORDER BY f.nom_focaccia;
-
--- R14. Les ingrédients dont le grammage a été personnalisé sur une focaccia
---      (quantité réelle différente de la quantité par défaut du catalogue).
---      Notions : jointure + comparaison de colonnes de deux tables.
-SELECT   f.nom_focaccia,
-         i.nom_ingredient,
-         i.quantite_defaut_g           AS grammage_standard,
-         c.quantite_g                  AS grammage_utilise
-FROM     composition c
-JOIN     focaccia   f ON f.id_focaccia   = c.id_focaccia
-JOIN     ingredient i ON i.id_ingredient = c.id_ingredient
-WHERE    c.quantite_g <> i.quantite_defaut_g
-ORDER BY f.nom_focaccia, i.nom_ingredient;
-
--- R15. Prix de chaque focaccia comparé au prix moyen de la carte.
---      Notions : sous-requête scalaire dans le SELECT, expression conditionnelle.
-SELECT   nom_focaccia,
-         prix,
-         (SELECT ROUND(AVG(prix), 2) FROM focaccia) AS prix_moyen_carte,
-         CASE
-             WHEN prix > (SELECT AVG(prix) FROM focaccia) THEN 'Au-dessus de la moyenne'
-             WHEN prix < (SELECT AVG(prix) FROM focaccia) THEN 'En-dessous de la moyenne'
-             ELSE 'Dans la moyenne'
-         END AS positionnement
-FROM     focaccia
-ORDER BY prix DESC;
-
--- R16. Le « top 3 » des focaccias les plus riches en ingrédients.
---      Notions : GROUP BY + ORDER BY + LIMIT.
-SELECT   f.nom_focaccia,
-         COUNT(c.id_ingredient) AS nb_ingredients
-FROM     focaccia    f
-JOIN     composition c ON c.id_focaccia = f.id_focaccia
-GROUP BY f.id_focaccia, f.nom_focaccia
-ORDER BY nb_ingredients DESC, f.nom_focaccia
-LIMIT 3;
+ORDER BY f.nom;
+-- Résultat attendu : 2 focaccias : Américaine, Hawaienne
+-- Résultat obtenu  : identique (2 lignes).
+-- Écart            : aucun.

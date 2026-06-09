@@ -1,103 +1,153 @@
 -- =============================================================================
---  Projet      : Base de données "Tifosi" (restaurant de focaccias & boissons)
---  Fichier     : 01_schema.sql
---  Rôle        : Création de la base de données et de son schéma relationnel.
---  SGBD        : MySQL 8.x
---  Auteur      : Kevin Reis
+--  Projet  : Base de données "Tifosi" (restaurant de street-food italien)
+--  Fichier : 01_schema.sql
+--  Rôle    : Création de la base, de l'utilisateur d'administration et du
+--            schéma relationnel, d'après le MCD fourni par le client.
+--  SGBD    : MySQL 8.x / MariaDB 10.x
+--  Auteur  : Kevin Reis
 -- =============================================================================
 --
---  Le script est ré-exécutable : il supprime puis recrée intégralement la base.
---  Moteur InnoDB  -> support des clés étrangères et des transactions.
---  Jeu utf8mb4    -> gestion correcte des accents (é, è, ç, œ...).
+--  MCD -> MLD (transformation des associations) :
+--    comprend (N..N, ingredient <-> focaccia, attribut quantite) -> table comprend
+--    appartient (boisson 1,1 -> marque 0,n)                      -> FK id_marque dans boisson
+--    est constitué (menu 1,1 -> focaccia 0,n)                    -> FK id_focaccia dans menu
+--    contient (N..N, menu <-> boisson)                           -> table contient
+--    achete (N..N, client <-> menu, attribut date_achat)         -> table achete
+--
+--  Sécurité / intégrité :
+--    - champs obligatoires        -> NOT NULL
+--    - valeurs uniques            -> UNIQUE (noms, email)
+--    - intégrité référentielle    -> FOREIGN KEY + ON UPDATE/DELETE
+--    - règles métier              -> CHECK (prix > 0)
+--  Moteur InnoDB (clés étrangères) et jeu utf8mb4 (accents é, è, œ...).
 --
 -- -----------------------------------------------------------------------------
 
+-- 1) Création de la base de données -------------------------------------------
 DROP DATABASE IF EXISTS tifosi;
 CREATE DATABASE tifosi
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
+
+-- 2) Création de l'utilisateur d'administration de la base --------------------
+--    L'utilisateur 'tifosi' administre UNIQUEMENT la base tifosi (moindre
+--    privilège : aucun droit global sur le serveur).
+CREATE USER IF NOT EXISTS 'tifosi'@'localhost' IDENTIFIED BY 'Tifosi#2025';
+GRANT ALL PRIVILEGES ON tifosi.* TO 'tifosi'@'localhost';
+FLUSH PRIVILEGES;
+
 USE tifosi;
 
--- -----------------------------------------------------------------------------
---  Table : marque
---  Marques commerciales des boissons (Coca-cola, Pepsico, ...).
--- -----------------------------------------------------------------------------
+-- 3) Tables « entités » (sans clé étrangère) ----------------------------------
+
+-- Clients du restaurant.
+CREATE TABLE client (
+    id_client    INT          NOT NULL AUTO_INCREMENT,
+    nom          VARCHAR(50)  NOT NULL,
+    email        VARCHAR(150) NOT NULL,
+    code_postal  INT          NULL,
+    CONSTRAINT pk_client PRIMARY KEY (id_client),
+    CONSTRAINT uq_client_email UNIQUE (email)        -- un email identifie un client
+) ENGINE = InnoDB;
+
+-- Marques commerciales des boissons.
 CREATE TABLE marque (
-    id_marque   INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    nom_marque  VARCHAR(50)  NOT NULL,
+    id_marque  INT         NOT NULL AUTO_INCREMENT,
+    nom        VARCHAR(50) NOT NULL,
     CONSTRAINT pk_marque PRIMARY KEY (id_marque),
-    CONSTRAINT uq_marque_nom UNIQUE (nom_marque)
+    CONSTRAINT uq_marque_nom UNIQUE (nom)
 ) ENGINE = InnoDB;
 
--- -----------------------------------------------------------------------------
---  Table : boisson
---  Boissons proposées à la carte. Chaque boisson appartient à une seule marque.
---  Relation marque (1) --- (N) boisson.
--- -----------------------------------------------------------------------------
-CREATE TABLE boisson (
-    id_boisson   INT UNSIGNED NOT NULL AUTO_INCREMENT,
-    nom_boisson  VARCHAR(80)  NOT NULL,
-    id_marque    INT UNSIGNED NOT NULL,
-    CONSTRAINT pk_boisson PRIMARY KEY (id_boisson),
-    CONSTRAINT fk_boisson_marque
-        FOREIGN KEY (id_marque) REFERENCES marque (id_marque)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT          -- on interdit la suppression d'une marque encore utilisée
-) ENGINE = InnoDB;
-
--- Index sur la clé étrangère pour accélérer les jointures et les filtres par marque.
-CREATE INDEX idx_boisson_marque ON boisson (id_marque);
-
--- -----------------------------------------------------------------------------
---  Table : ingredient
---  Catalogue des ingrédients utilisables sur les focaccias.
---  quantite_defaut_g : grammage standard appliqué « sauf indication contraire ».
--- -----------------------------------------------------------------------------
+-- Catalogue des ingrédients.
 CREATE TABLE ingredient (
-    id_ingredient      INT UNSIGNED   NOT NULL AUTO_INCREMENT,
-    nom_ingredient     VARCHAR(50)    NOT NULL,
-    quantite_defaut_g  SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    id_ingredient INT         NOT NULL AUTO_INCREMENT,
+    nom           VARCHAR(50) NOT NULL,
     CONSTRAINT pk_ingredient PRIMARY KEY (id_ingredient),
-    CONSTRAINT uq_ingredient_nom UNIQUE (nom_ingredient)
+    CONSTRAINT uq_ingredient_nom UNIQUE (nom)
 ) ENGINE = InnoDB;
 
--- -----------------------------------------------------------------------------
---  Table : focaccia
---  Focaccias proposées à la carte, avec leur prix de vente.
--- -----------------------------------------------------------------------------
+-- Focaccias proposées à la carte.
 CREATE TABLE focaccia (
-    id_focaccia   INT UNSIGNED  NOT NULL AUTO_INCREMENT,
-    nom_focaccia  VARCHAR(50)   NOT NULL,
-    prix          DECIMAL(5,2)  NOT NULL,
+    id_focaccia INT          NOT NULL AUTO_INCREMENT,
+    nom         VARCHAR(50)  NOT NULL,
+    prix        DECIMAL(5,2) NOT NULL,
     CONSTRAINT pk_focaccia PRIMARY KEY (id_focaccia),
-    CONSTRAINT uq_focaccia_nom UNIQUE (nom_focaccia),
+    CONSTRAINT uq_focaccia_nom UNIQUE (nom),
     CONSTRAINT ck_focaccia_prix CHECK (prix > 0)
 ) ENGINE = InnoDB;
 
--- -----------------------------------------------------------------------------
---  Table : composition  (table d'association / table de jonction)
---  Modélise la relation N..N entre focaccia et ingredient :
---      - une focaccia est composée de plusieurs ingrédients ;
---      - un ingrédient peut entrer dans plusieurs focaccias.
---  L'attribut quantite_g porte sur la RELATION (grammage réellement utilisé
---  pour cette focaccia, qui peut différer du grammage par défaut).
---  La clé primaire composite (id_focaccia, id_ingredient) interdit les doublons.
--- -----------------------------------------------------------------------------
-CREATE TABLE composition (
-    id_focaccia    INT UNSIGNED      NOT NULL,
-    id_ingredient  INT UNSIGNED      NOT NULL,
-    quantite_g     SMALLINT UNSIGNED NOT NULL,
-    CONSTRAINT pk_composition PRIMARY KEY (id_focaccia, id_ingredient),
-    CONSTRAINT fk_compo_focaccia
-        FOREIGN KEY (id_focaccia) REFERENCES focaccia (id_focaccia)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE,          -- supprimer une focaccia supprime sa composition
-    CONSTRAINT fk_compo_ingredient
-        FOREIGN KEY (id_ingredient) REFERENCES ingredient (id_ingredient)
-        ON UPDATE CASCADE
-        ON DELETE RESTRICT          -- on interdit la suppression d'un ingrédient encore utilisé
-) ENGINE = InnoDB;
+-- 4) Tables « entités » avec clé étrangère ------------------------------------
 
--- Index sur la 2e colonne de la FK composite (la 1re est déjà couverte par la PK)
--- pour accélérer la recherche « dans quelles focaccias se trouve cet ingrédient ? ».
-CREATE INDEX idx_compo_ingredient ON composition (id_ingredient);
+-- Boissons : chaque boisson appartient à exactement une marque (1,1).
+CREATE TABLE boisson (
+    id_boisson INT         NOT NULL AUTO_INCREMENT,
+    nom        VARCHAR(50) NOT NULL,
+    id_marque  INT         NOT NULL,
+    CONSTRAINT pk_boisson PRIMARY KEY (id_boisson),
+    CONSTRAINT fk_boisson_marque
+        FOREIGN KEY (id_marque) REFERENCES marque (id_marque)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE = InnoDB;
+CREATE INDEX idx_boisson_marque ON boisson (id_marque);
+
+-- Menus : chaque menu est constitué d'exactement une focaccia (1,1).
+CREATE TABLE menu (
+    id_menu     INT          NOT NULL AUTO_INCREMENT,
+    nom         VARCHAR(50)  NOT NULL,
+    prix        DECIMAL(5,2) NOT NULL,
+    id_focaccia INT          NOT NULL,
+    CONSTRAINT pk_menu PRIMARY KEY (id_menu),
+    CONSTRAINT uq_menu_nom UNIQUE (nom),
+    CONSTRAINT ck_menu_prix CHECK (prix > 0),
+    CONSTRAINT fk_menu_focaccia
+        FOREIGN KEY (id_focaccia) REFERENCES focaccia (id_focaccia)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE = InnoDB;
+CREATE INDEX idx_menu_focaccia ON menu (id_focaccia);
+
+-- 5) Tables « associations » (relations N..N) ---------------------------------
+
+-- comprend : composition d'une focaccia en ingrédients (+ quantité en grammes).
+CREATE TABLE comprend (
+    id_focaccia   INT NOT NULL,
+    id_ingredient INT NOT NULL,
+    quantite      INT NOT NULL,
+    CONSTRAINT pk_comprend PRIMARY KEY (id_focaccia, id_ingredient),
+    CONSTRAINT fk_comprend_focaccia
+        FOREIGN KEY (id_focaccia) REFERENCES focaccia (id_focaccia)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_comprend_ingredient
+        FOREIGN KEY (id_ingredient) REFERENCES ingredient (id_ingredient)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE = InnoDB;
+CREATE INDEX idx_comprend_ingredient ON comprend (id_ingredient);
+
+-- contient : boissons incluses dans un menu.
+CREATE TABLE contient (
+    id_menu    INT NOT NULL,
+    id_boisson INT NOT NULL,
+    CONSTRAINT pk_contient PRIMARY KEY (id_menu, id_boisson),
+    CONSTRAINT fk_contient_menu
+        FOREIGN KEY (id_menu) REFERENCES menu (id_menu)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_contient_boisson
+        FOREIGN KEY (id_boisson) REFERENCES boisson (id_boisson)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE = InnoDB;
+CREATE INDEX idx_contient_boisson ON contient (id_boisson);
+
+-- achete : achats d'un menu par un client à une date donnée.
+-- La date fait partie de la clé : un client peut racheter le même menu un autre jour.
+CREATE TABLE achete (
+    id_client  INT  NOT NULL,
+    id_menu    INT  NOT NULL,
+    date_achat DATE NOT NULL,
+    CONSTRAINT pk_achete PRIMARY KEY (id_client, id_menu, date_achat),
+    CONSTRAINT fk_achete_client
+        FOREIGN KEY (id_client) REFERENCES client (id_client)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_achete_menu
+        FOREIGN KEY (id_menu) REFERENCES menu (id_menu)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE = InnoDB;
+CREATE INDEX idx_achete_menu ON achete (id_menu);

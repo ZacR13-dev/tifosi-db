@@ -1,97 +1,125 @@
 # Modélisation – Base de données « Tifosi »
 
-## 1. Recensement des informations du domaine
+## 1. MCD fourni par le client
 
-Tifosi est un restaurant proposant des **focaccias** et des **boissons**.
+Le propriétaire du restaurant a fourni le modèle conceptuel de données (MCD)
+suivant, qui sert de référence à toute la conception :
 
-- Une **focaccia** possède un nom et un prix de vente. Elle est composée de
-  plusieurs **ingrédients**, chacun en une certaine quantité (en grammes).
-- Un **ingrédient** possède un nom et une quantité par défaut (le grammage
-  standard appliqué « sauf indication contraire »). Le même ingrédient peut
-  entrer dans la composition de plusieurs focaccias.
-- Une **boisson** possède un nom et appartient à une **marque** commerciale.
-- Une **marque** regroupe plusieurs boissons.
+**Entités**
 
-## 2. Règles de gestion
+| Entité | Attributs |
+|--------|-----------|
+| `Client`    | id_client, nom, email, code_postal |
+| `ingredient`| id_ingredient, nom |
+| `marque`    | id_marque, nom |
+| `focaccia`  | id_focaccia, nom, prix |
+| `menu`      | id_menu, nom, prix |
+| `boisson`   | id_boisson, nom |
 
-1. Une focaccia est composée de 1 à N ingrédients ; un ingrédient peut figurer
-   dans 0 à N focaccias → **association N..N** porteuse de la quantité.
-2. Une boisson appartient à exactement 1 marque ; une marque possède 0 à N
-   boissons → **association 1..N**.
-3. Les noms de marque, d'ingrédient et de focaccia sont uniques.
-4. Le prix d'une focaccia est strictement positif.
+**Associations**
 
-## 3. Modèle Conceptuel de Données (MCD – Merise)
+| Association | Entités reliées | Cardinalités | Attribut |
+|-------------|-----------------|--------------|----------|
+| `comprend`       | ingredient — focaccia | (0,n) — (1,n) | quantite |
+| `appartient`     | boisson — marque      | (1,1) — (0,n) | — |
+| `est constitué`  | menu — focaccia       | (1,1) — (0,n) | — |
+| `contient`       | menu — boisson        | (1,n) — (0,n) | — |
+| `achete`         | Client — menu         | (0,n) — (0,n) | date_achat |
+
+## 2. Règles de gestion déduites
+
+1. Une focaccia comprend **1 à n** ingrédients ; un ingrédient peut n'être
+   utilisé dans **aucune** focaccia (d'où la possibilité d'« ingrédients
+   inutilisés »). → association **N..N** porteuse de `quantite`.
+2. Une boisson appartient à **exactement une** marque ; une marque regroupe
+   0..n boissons. → association **1..N**.
+3. Un menu est constitué d'**exactement une** focaccia ; une focaccia peut
+   servir de base à 0..n menus. → association **1..N**.
+4. Un menu contient **1 à n** boissons ; une boisson peut figurer dans 0..n
+   menus. → association **N..N**.
+5. Un client achète 0..n menus ; un menu est acheté par 0..n clients, à une
+   date donnée. → association **N..N** porteuse de `date_achat`.
+
+## 3. Passage du MCD au MLD
+
+Règles de transformation appliquées :
+
+- une association **N..N** devient une **table** dont la clé primaire est la
+  concaténation des clés des entités reliées (+ l'éventuel attribut de date) ;
+- une association **1..N** se traduit par une **clé étrangère** placée du côté
+  « 1,1 » (côté `boisson` et côté `menu`).
+
+**MLD obtenu** (clé primaire soulignée par convention, `#` = clé étrangère) :
 
 ```
-MARQUE (id_marque, nom_marque)
-        |
-        | 1,1  « est de »            0,n
-INGREDIENT ----< COMPOSER >---- FOCACCIA
- (1,n)   [quantite_g]   (1,n)
-
-BOISSON (id_boisson, nom_boisson) --(1,1)-- appartient --(0,n)-- MARQUE
+client      (id_client, nom, email, code_postal)
+marque      (id_marque, nom)
+ingredient  (id_ingredient, nom)
+focaccia    (id_focaccia, nom, prix)
+boisson     (id_boisson, nom, #id_marque)
+menu        (id_menu, nom, prix, #id_focaccia)
+comprend    (#id_focaccia, #id_ingredient, quantite)
+contient    (#id_menu, #id_boisson)
+achete      (#id_client, #id_menu, date_achat)
 ```
 
-Diagramme entité-association (rendu Mermaid) :
+Diagramme relationnel (rendu Mermaid) :
 
 ```mermaid
 erDiagram
-    MARQUE ||--o{ BOISSON : "possède"
-    FOCACCIA ||--|{ COMPOSITION : "est composée de"
-    INGREDIENT ||--o{ COMPOSITION : "entre dans"
+    marque    ||--o{ boisson  : "appartient"
+    focaccia  ||--o{ menu     : "est constitué"
+    focaccia  ||--o{ comprend : "comprend"
+    ingredient||--o{ comprend : "entre dans"
+    menu      ||--o{ contient : "contient"
+    boisson   ||--o{ contient : "incluse dans"
+    client    ||--o{ achete   : "achète"
+    menu      ||--o{ achete   : "acheté par"
 
-    MARQUE {
-        int id_marque PK
-        varchar nom_marque
-    }
-    BOISSON {
-        int id_boisson PK
-        varchar nom_boisson
-        int id_marque FK
-    }
-    INGREDIENT {
-        int id_ingredient PK
-        varchar nom_ingredient
-        smallint quantite_defaut_g
-    }
-    FOCACCIA {
-        int id_focaccia PK
-        varchar nom_focaccia
-        decimal prix
-    }
-    COMPOSITION {
-        int id_focaccia PK,FK
-        int id_ingredient PK,FK
-        smallint quantite_g
-    }
+    client     { int id_client PK
+                 varchar nom
+                 varchar email
+                 int code_postal }
+    marque     { int id_marque PK
+                 varchar nom }
+    ingredient { int id_ingredient PK
+                 varchar nom }
+    focaccia   { int id_focaccia PK
+                 varchar nom
+                 decimal prix }
+    boisson    { int id_boisson PK
+                 varchar nom
+                 int id_marque FK }
+    menu       { int id_menu PK
+                 varchar nom
+                 decimal prix
+                 int id_focaccia FK }
+    comprend   { int id_focaccia PK,FK
+                 int id_ingredient PK,FK
+                 int quantite }
+    contient   { int id_menu PK,FK
+                 int id_boisson PK,FK }
+    achete     { int id_client PK,FK
+                 int id_menu PK,FK
+                 date date_achat PK }
 ```
 
-## 4. Modèle Logique de Données (MLD)
+## 4. Sécurité & contraintes d'intégrité
 
-L'association N..N `COMPOSER` est transformée en une table de jonction
-`composition` dont la clé primaire est la concaténation des deux clés
-étrangères. L'association 1..N place la clé de `marque` comme clé étrangère
-dans `boisson`.
+| Mécanisme | Mise en œuvre |
+|-----------|---------------|
+| Utilisateur dédié | `CREATE USER 'tifosi'@'localhost'` + `GRANT ALL ON tifosi.*` (moindre privilège : pas de droit global serveur) |
+| Champs obligatoires | `NOT NULL` sur les noms, prix, dates et clés étrangères |
+| Valeurs uniques | `UNIQUE` sur les noms (marque, ingredient, focaccia, menu) et sur `client.email` |
+| Intégrité référentielle | `FOREIGN KEY` + `ON UPDATE CASCADE` / `ON DELETE RESTRICT`-`CASCADE` selon le cas |
+| Règles métier | `CHECK (prix > 0)` sur focaccia et menu |
+| Moteur / encodage | `InnoDB` (clés étrangères) + `utf8mb4` (accents) |
 
-```
-marque      (id_marque, nom_marque)
-boisson     (id_boisson, nom_boisson, #id_marque)
-ingredient  (id_ingredient, nom_ingredient, quantite_defaut_g)
-focaccia    (id_focaccia, nom_focaccia, prix)
-composition (#id_focaccia, #id_ingredient, quantite_g)
-```
+## 5. Autres choix techniques
 
-Légende : clé primaire soulignée par convention, `#` = clé étrangère.
-
-## 5. Choix techniques
-
-| Choix | Justification |
-|-------|---------------|
-| Moteur **InnoDB** | Support des clés étrangères et des transactions. |
-| Jeu **utf8mb4** | Gestion correcte des accents (é, è, œ…). |
-| `DECIMAL(5,2)` pour le prix | Évite les erreurs d'arrondi des flottants sur des montants. |
-| `SMALLINT UNSIGNED` pour les grammages | Entier positif suffisant (max 65 535 g). |
-| Contrainte `UNIQUE` sur les noms | Empêche les doublons fonctionnels. |
-| `CHECK (prix > 0)` | Garantit un prix valide au niveau de la base. |
-| Quantité portée par `composition` | Le grammage dépend du couple (focaccia, ingrédient), pas de l'ingrédient seul. |
+- `DECIMAL(5,2)` pour les prix : pas d'erreur d'arrondi des flottants sur des
+  montants monétaires.
+- `quantite` exprimée en grammes, portée par l'association `comprend` (elle
+  dépend du couple focaccia/ingrédient, pas de l'ingrédient seul).
+- `date_achat` intégrée à la clé primaire d'`achete` : un client peut racheter
+  le même menu un autre jour sans violer la clé primaire.
