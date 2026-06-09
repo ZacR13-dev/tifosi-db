@@ -5,7 +5,7 @@ restaurant de street-food italien **Le Tifosi**, à partir du MCD fourni par le
 client.
 
 > Projet réalisé dans le cadre du **Titre Professionnel Développeur Web et Web
-> Mobile (DWWM)** — module *Gérer une base de données avec MySQL*.
+> Mobile (DWWM)**, module *Gérer une base de données avec MySQL*.
 
 ---
 
@@ -152,7 +152,7 @@ Les 3 scripts ont été **exécutés sans erreur** sur **MariaDB 10.11** :
 
 ## 10. Compétences couvertes (référentiel DWWM)
 
-> Développer la partie back-end d'une application web sécurisée — *Mettre en
+> Développer la partie back-end d'une application web sécurisée. *Mettre en
 > place une base de données relationnelle* :
 
 - recensement et organisation des informations du domaine ;

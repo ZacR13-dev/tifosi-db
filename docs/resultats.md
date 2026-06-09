@@ -1,4 +1,4 @@
-# Résultats obtenus – Requêtes de vérification
+# Résultats obtenus : requêtes de vérification
 
 Sorties réelles des 10 requêtes de `sql/03_requetes.sql`, exécutées avec
 l'utilisateur `tifosi` sur **MariaDB 10.11** (base peuplée par `02_data.sql`).
@@ -6,7 +6,7 @@ Aucun écart avec les résultats attendus.
 
 ---
 
-### Requête 1 — Liste des focaccias par ordre alphabétique croissant
+### Requête 1 : Liste des focaccias par ordre alphabétique croissant
 ```
 +-----------------+
 | nom             |
@@ -20,30 +20,30 @@ Aucun écart avec les résultats attendus.
 | Raclaccia       |
 | Tradizione      |
 +-----------------+
-8 lignes — Écart : aucun.
+8 lignes, aucun écart.
 ```
 
-### Requête 2 — Nombre total d'ingrédients
+### Requête 2 : Nombre total d'ingrédients
 ```
 +----------------+
 | nb_ingredients |
 +----------------+
 |             25 |
 +----------------+
-Écart : aucun.
+aucun écart.
 ```
 
-### Requête 3 — Prix moyen des focaccias
+### Requête 3 : Prix moyen des focaccias
 ```
 +------------+
 | prix_moyen |
 +------------+
 |      10.38 |
 +------------+
-Écart : aucun (83.00 / 8 = 10.375 → arrondi à 10.38).
+aucun écart (83.00 / 8 = 10.375 → arrondi à 10.38).
 ```
 
-### Requête 4 — Boissons avec leur marque, triées par nom de boisson
+### Requête 4 : Boissons avec leur marque, triées par nom de boisson
 ```
 +---------------------------+-------------+
 | boisson                   | marque      |
@@ -61,10 +61,10 @@ Aucun écart avec les résultats attendus.
 | Pepsi                     | Pepsico     |
 | Pepsi Max Zéro            | Pepsico     |
 +---------------------------+-------------+
-12 lignes — Écart : aucun.
+12 lignes, aucun écart.
 ```
 
-### Requête 5 — Ingrédients d'une Raclaccia
+### Requête 5 : Ingrédients d'une Raclaccia
 ```
 +-------------+
 | ingredient  |
@@ -77,10 +77,10 @@ Aucun écart avec les résultats attendus.
 | Poivre      |
 | Raclette    |
 +-------------+
-7 lignes — Écart : aucun.
+7 lignes, aucun écart.
 ```
 
-### Requête 6 — Nom et nombre d'ingrédients pour chaque focaccia
+### Requête 6 : Nom et nombre d'ingrédients pour chaque focaccia
 ```
 +-----------------+----------------+
 | nom             | nb_ingredients |
@@ -94,20 +94,20 @@ Aucun écart avec les résultats attendus.
 | Emmentalaccia   |              7 |
 | Raclaccia       |              7 |
 +-----------------+----------------+
-8 lignes — Écart : aucun.
+8 lignes, aucun écart.
 ```
 
-### Requête 7 — Focaccia ayant le plus d'ingrédients
+### Requête 7 : Focaccia ayant le plus d'ingrédients
 ```
 +----------+----------------+
 | nom      | nb_ingredients |
 +----------+----------------+
 | Paysanne |             12 |
 +----------+----------------+
-Écart : aucun.
+aucun écart.
 ```
 
-### Requête 8 — Focaccias contenant de l'ail
+### Requête 8 : Focaccias contenant de l'ail
 ```
 +-----------------+
 | nom             |
@@ -117,10 +117,10 @@ Aucun écart avec les résultats attendus.
 | Paysanne        |
 | Raclaccia       |
 +-----------------+
-4 lignes — Écart : aucun.
+4 lignes, aucun écart.
 ```
 
-### Requête 9 — Ingrédients inutilisés
+### Requête 9 : Ingrédients inutilisés
 ```
 +---------------+
 | nom           |
@@ -128,10 +128,10 @@ Aucun écart avec les résultats attendus.
 | Salami        |
 | Tomate cerise |
 +---------------+
-2 lignes — Écart : aucun.
+2 lignes, aucun écart.
 ```
 
-### Requête 10 — Focaccias sans champignons
+### Requête 10 : Focaccias sans champignons
 ```
 +-------------+
 | nom         |
@@ -139,5 +139,5 @@ Aucun écart avec les résultats attendus.
 | Américaine  |
 | Hawaienne   |
 +-------------+
-2 lignes — Écart : aucun.
+2 lignes, aucun écart.
 ```

@@ -112,7 +112,7 @@ INSERT INTO comprend (id_focaccia, id_ingredient, quantite) VALUES
 
 
 -- #############################################################################
---  JEU D'EXEMPLE (aucune donnée fournie pour ces tables — données fictives)
+--  JEU D'EXEMPLE (aucune donnée fournie pour ces tables, données fictives)
 -- #############################################################################
 
 -- ----- client ----------------------------------------------------------------

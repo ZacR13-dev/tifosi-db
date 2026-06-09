@@ -1,4 +1,4 @@
-# Modélisation – Base de données « Tifosi »
+# Modélisation : base de données « Tifosi »
 
 ## 1. MCD fourni par le client
 
@@ -23,11 +23,11 @@ suivant, qui sert de référence à toute la conception :
 
 | Association | Entités reliées | Cardinalités | Attribut |
 |-------------|-----------------|--------------|----------|
-| `comprend`       | ingredient — focaccia | (0,n) — (1,n) | quantite |
-| `appartient`     | boisson — marque      | (1,1) — (0,n) | — |
-| `est constitué`  | menu — focaccia       | (1,1) — (0,n) | — |
-| `contient`       | menu — boisson        | (1,n) — (0,n) | — |
-| `achete`         | Client — menu         | (0,n) — (0,n) | date_achat |
+| `comprend`       | ingredient / focaccia | (0,n) / (1,n) | quantite |
+| `appartient`     | boisson / marque      | (1,1) / (0,n) | (aucun) |
+| `est constitué`  | menu / focaccia       | (1,1) / (0,n) | (aucun) |
+| `contient`       | menu / boisson        | (1,n) / (0,n) | (aucun) |
+| `achete`         | client / menu         | (0,n) / (0,n) | date_achat |
 
 ## 2. Règles de gestion déduites
 
