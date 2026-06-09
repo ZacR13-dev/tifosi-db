@@ -5,6 +5,9 @@
 Le propriétaire du restaurant a fourni le modèle conceptuel de données (MCD)
 suivant, qui sert de référence à toute la conception :
 
+![MCD du restaurant Tifosi](mcd.png)
+
+
 **Entités**
 
 | Entité | Attributs |
