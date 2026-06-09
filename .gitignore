@@ -1,0 +1,8 @@
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Fichiers temporaires Excel
+~$*.xlsx
